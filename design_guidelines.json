@@ -1,0 +1,157 @@
+{
+  "brand_identity": {
+    "name": "Esencia Mini Pancakes & Coffee",
+    "core_values": ["Artisan", "Warmth", "Simplicity", "Indulgence"],
+    "voice": "Elegant, welcoming, and efficient",
+    "persona": "The sophisticated barista who remembers your order"
+  },
+  "typography": {
+    "font_family": {
+      "headings": "PlayfairDisplay_700Bold",
+      "subheadings": "PlayfairDisplay_600SemiBold",
+      "body": "DMSans_400Regular",
+      "body_bold": "DMSans_700Bold",
+      "caption": "DMSans_500Medium"
+    },
+    "font_loading_instructions": "Use expo-font to load 'PlayfairDisplay' and 'DMSans' from Google Fonts via expo-google-fonts packages.",
+    "sizes": {
+      "h1": 32,
+      "h2": 24,
+      "h3": 20,
+      "body": 16,
+      "small": 14,
+      "caption": 12
+    }
+  },
+  "colors": {
+    "palette": {
+      "primary": "#D4A574",
+      "primary_foreground": "#FFFFFF",
+      "secondary": "#1A1A1A",
+      "secondary_foreground": "#FFFFFF",
+      "accent": "#C9A96E",
+      "background": "#FAFAF9",
+      "surface": "#FFFFFF",
+      "surface_highlight": "#F5F5F0",
+      "text_primary": "#1A1A1A",
+      "text_secondary": "#6B6B6B",
+      "border": "#E5E5E0",
+      "success": "#5D7853",
+      "error": "#B94A48",
+      "warning": "#E6B800"
+    },
+    "gradients": {
+      "gold_rush": ["#C9A96E", "#E6C88B"],
+      "coffee_fade": ["#1A1A1A", "#333333"]
+    }
+  },
+  "spacing": {
+    "xs": 4,
+    "s": 8,
+    "m": 16,
+    "l": 24,
+    "xl": 32,
+    "xxl": 48,
+    "container_padding": 20
+  },
+  "layout": {
+    "border_radius": {
+      "s": 8,
+      "m": 16,
+      "l": 24,
+      "pill": 999
+    },
+    "shadows": {
+      "soft": {
+        "shadowColor": "#000",
+        "shadowOffset": { "width": 0, "height": 4 },
+        "shadowOpacity": 0.05,
+        "shadowRadius": 12,
+        "elevation": 2
+      },
+      "medium": {
+        "shadowColor": "#000",
+        "shadowOffset": { "width": 0, "height": 8 },
+        "shadowOpacity": 0.1,
+        "shadowRadius": 24,
+        "elevation": 5
+      }
+    }
+  },
+  "components": {
+    "Button": {
+      "base": {
+        "height": 56,
+        "borderRadius": 999,
+        "justifyContent": "center",
+        "alignItems": "center",
+        "flexDirection": "row",
+        "gap": 8
+      },
+      "primary": {
+        "backgroundColor": "#1A1A1A"
+      },
+      "secondary": {
+        "backgroundColor": "#D4A574"
+      },
+      "outline": {
+        "backgroundColor": "transparent",
+        "borderWidth": 1,
+        "borderColor": "#1A1A1A"
+      },
+      "ghost": {
+        "backgroundColor": "transparent"
+      }
+    },
+    "Card": {
+      "base": {
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 24,
+        "padding": 20,
+        "borderWidth": 1,
+        "borderColor": "#F0F0F0"
+      }
+    },
+    "Input": {
+      "base": {
+        "height": 56,
+        "backgroundColor": "#F5F5F0",
+        "borderRadius": 16,
+        "paddingHorizontal": 16,
+        "fontSize": 16,
+        "color": "#1A1A1A"
+      },
+      "focus": {
+        "borderWidth": 1,
+        "borderColor": "#D4A574",
+        "backgroundColor": "#FFFFFF"
+      }
+    }
+  },
+  "assets": {
+    "logo_url": "https://customer-assets.emergentagent.com/job_rewards-esencia/artifacts/4dh7zadu_IMG_2592.png",
+    "images": {
+      "hero_pancakes": "https://images.unsplash.com/photo-1713761730443-e62067c98310?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA4Mzl8MHwxfHNlYXJjaHw0fHxtaW5pJTIwcGFuY2FrZXMlMjBwb2ZmZXJ0amVzJTIwd2l0aCUyMHRvcHBpbmdzJTIwZGVsaWNpb3VzfGVufDB8fHx8MTc3MzQ3MTY2NXww&ixlib=rb-4.1.0&q=85",
+      "coffee_latte": "https://images.unsplash.com/photo-1670899603742-726393a354fc?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzV8MHwxfHNlYXJjaHwyfHxsYXR0ZSUyMGFydCUyMGNvZmZlZSUyMGN1cCUyMG9uJTIwd29vZGVuJTIwdGFibGUlMjB3YXJtJTIwbGlnaHRpbmd8ZW58MHx8fHwxNzczNDcxNjY2fDA&ixlib=rb-4.1.0&q=85",
+      "cafe_interior": "https://images.unsplash.com/photo-1693730960799-17922dba0748?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2Mzl8MHwxfHNlYXJjaHw0fHxtaW5pbWFsaXN0JTIwY29mZmVlJTIwc2hvcCUyMGludGVyaW9yJTIwd2FybSUyMGJlaWdlJTIwd29vZCUyMHVyYmFufGVufDB8fHx8MTc3MzQ3MTY2N3ww&ixlib=rb-4.1.0&q=85"
+    }
+  },
+  "instructions_to_main_agent": [
+    "1. CREATE A THEME FILE: Create 'src/constants/theme.js' and export the colors, spacing, and typography objects defined above. Import this in every component.",
+    "2. NO TAILWIND: This is a standard Expo React Native project. Use 'StyleSheet.create' and refer to the theme constants.",
+    "3. FONTS: Install 'expo-font', '@expo-google-fonts/playfair-display', and '@expo-google-fonts/dm-sans'. Load them in the root layout.",
+    "4. ICONS: Use '@expo/vector-icons' (specifically Feather or Ionicons) for a clean look.",
+    "5. NAVIGATION: Use 'expo-router'. Create a tab layout for the main app and a stack layout for auth.",
+    "6. ADMIN PANEL: Should be a separate tab or a hidden section accessible only to specific users.",
+    "7. BENTO GRID: On the Home screen, use a flexible grid layout (View with flexDirection: row, flexWrap: wrap) to create the dashboard effect.",
+    "8. QR CODE: Use 'react-native-qrcode-svg' for generation and 'expo-camera' for scanning.",
+    "9. DATA TEST ID: Add 'testID' prop to all TouchableOpacity and TextInput components for testing."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Avoid gradients on text.",
+    "Use 2-3x more spacing than typical defaults.",
+    "Buttons must be at least 48px height (ideally 56px).",
+    "Never use pure black (#000000) for backgrounds; use #1A1A1A or similar.",
+    "Animations: Use 'react-native-reanimated' for layout transitions (LayoutAnimation.configureNext) if possible, or simple LayoutAnimation API."
+  ]
+}
