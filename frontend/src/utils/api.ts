@@ -118,6 +118,7 @@ export type PromotionPayload = {
 export type UserUpdatePayload = {
   name?: string;
   email?: string;
+  password?: string;
   role?: 'customer' | 'admin';
   club_member?: boolean;
   membership_tier?: string | null;

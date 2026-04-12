@@ -151,3 +151,54 @@ def test_club_waitlist_sets_user_flags():
     me_data = me_response.json()
     assert me_data['club_waitlist'] is True
     assert me_data['club_waitlist_joined_at']
+
+
+def test_admin_can_update_user_password():
+    admin_auth = login(DEMO_ADMIN_EMAIL, DEMO_ADMIN_PASSWORD)
+
+    original_password = 'test123'
+    new_password = 'nuevo123'
+    email = f"password_update_{os.urandom(4).hex()}@test.com"
+
+    create_user_response = requests.post(
+        f'{BASE_URL}/api/auth/register',
+        json={
+            'email': email,
+            'password': original_password,
+            'name': 'Password Update',
+        },
+        headers={'Content-Type': 'application/json'},
+        timeout=10,
+    )
+    assert create_user_response.status_code == 200, create_user_response.text
+    user_id = create_user_response.json()['user']['id']
+
+    update_response = requests.put(
+        f'{BASE_URL}/api/admin/user/{user_id}',
+        json={'password': new_password},
+        headers={
+            'Content-Type': 'application/json',
+            'Authorization': f"Bearer {admin_auth['token']}",
+        },
+        timeout=10,
+    )
+
+    assert update_response.status_code == 200, update_response.text
+    updated_user = update_response.json()
+    assert updated_user['id'] == user_id
+
+    old_login_response = requests.post(
+        f'{BASE_URL}/api/auth/login',
+        json={'email': email, 'password': original_password},
+        headers={'Content-Type': 'application/json'},
+        timeout=10,
+    )
+    assert old_login_response.status_code == 401
+
+    new_login_response = requests.post(
+        f'{BASE_URL}/api/auth/login',
+        json={'email': email, 'password': new_password},
+        headers={'Content-Type': 'application/json'},
+        timeout=10,
+    )
+    assert new_login_response.status_code == 200, new_login_response.text

@@ -42,6 +42,8 @@ export default function ManageUsersScreen() {
   const [form, setForm] = useState({
     name: '',
     email: '',
+    password: '',
+    confirmPassword: '',
     role: 'customer' as 'customer' | 'admin',
     club_member: false,
     membership_tier: '',
@@ -98,6 +100,8 @@ export default function ManageUsersScreen() {
     setForm({
       name: user.name ?? '',
       email: user.email ?? '',
+      password: '',
+      confirmPassword: '',
       role: user.role === 'admin' ? 'admin' : 'customer',
       club_member: Boolean(user.club_member),
       membership_tier: user.membership_tier ?? '',
@@ -115,11 +119,22 @@ export default function ManageUsersScreen() {
       return;
     }
 
+    if (form.password && form.password.length < 6) {
+      Alert.alert('Contrasena invalida', 'La nueva contrasena debe tener al menos 6 caracteres.');
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      Alert.alert('Contrasenas distintas', 'La confirmacion debe coincidir con la nueva contrasena.');
+      return;
+    }
+
     setSaving(true);
     try {
       const updatedUser = await api.updateUser(selectedUser.id, {
         name: form.name.trim(),
         email: form.email.trim(),
+        password: form.password || undefined,
         role: form.role,
         club_member: form.club_member,
         membership_tier: form.club_member ? form.membership_tier.trim() || null : null,
@@ -131,6 +146,8 @@ export default function ManageUsersScreen() {
       setForm({
         name: updatedUser.name ?? '',
         email: updatedUser.email ?? '',
+        password: '',
+        confirmPassword: '',
         role: updatedUser.role === 'admin' ? 'admin' : 'customer',
         club_member: Boolean(updatedUser.club_member),
         membership_tier: updatedUser.membership_tier ?? '',
@@ -263,6 +280,36 @@ export default function ManageUsersScreen() {
                 keyboardType="email-address"
                 placeholder="Email"
                 placeholderTextColor={Colors.textSecondary}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Nueva contrasena</Text>
+              <TextInput
+                testID="user-password-input"
+                style={styles.input}
+                value={form.password}
+                onChangeText={(value) => setForm((current) => ({ ...current, password: value }))}
+                placeholder="Dejar vacio para no cambiarla"
+                placeholderTextColor={Colors.textSecondary}
+                secureTextEntry
+                autoCapitalize="none"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Confirmar contrasena</Text>
+              <TextInput
+                testID="user-password-confirm-input"
+                style={styles.input}
+                value={form.confirmPassword}
+                onChangeText={(value) =>
+                  setForm((current) => ({ ...current, confirmPassword: value }))
+                }
+                placeholder="Repite la nueva contrasena"
+                placeholderTextColor={Colors.textSecondary}
+                secureTextEntry
+                autoCapitalize="none"
               />
             </View>
 

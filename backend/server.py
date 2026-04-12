@@ -103,6 +103,7 @@ class PromotionUpdate(BaseModel):
 class UserAdminUpdate(BaseModel):
     name: Optional[str] = Field(default=None, min_length=2, max_length=120)
     email: Optional[EmailStr] = None
+    password: Optional[str] = Field(default=None, min_length=6, max_length=128)
     role: Optional[Literal["customer", "admin"]] = None
     club_member: Optional[bool] = None
     membership_tier: Optional[str] = Field(default=None, max_length=80)
@@ -390,6 +391,9 @@ async def update_user(user_id: str, data: UserAdminUpdate, user=Depends(get_admi
 
     if "email" in update_data:
         update_data["email"] = update_data["email"].strip().lower()
+
+    if "password" in update_data:
+        update_data["password_hash"] = hash_password(update_data.pop("password"))
 
     if update_data.get("club_member") is False and "membership_tier" not in update_data:
         update_data["membership_tier"] = None
