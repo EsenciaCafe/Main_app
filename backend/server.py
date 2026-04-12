@@ -108,6 +108,20 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
+def serialize_user(user: dict) -> dict:
+    return {
+        "id": user["id"],
+        "email": user["email"],
+        "name": user["name"],
+        "role": user["role"],
+        "points": user["points"],
+        "created_at": user["created_at"],
+        "club_member": bool(user.get("club_member", False)),
+        "membership_tier": user.get("membership_tier"),
+        "club_waitlist": bool(user.get("club_waitlist", False)),
+        "club_waitlist_joined_at": user.get("club_waitlist_joined_at"),
+    }
+
 def create_token(user_id: str, role: str) -> str:
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(minutes=JWT_EXPIRE_MINUTES)
@@ -158,7 +172,11 @@ async def register(data: UserCreate):
         "name": data.name,
         "role": "customer",
         "points": 0,
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "club_member": False,
+        "membership_tier": None,
+        "club_waitlist": False,
+        "club_waitlist_joined_at": None,
     }
     try:
         await db.users.insert_one(user)
@@ -167,14 +185,7 @@ async def register(data: UserCreate):
     token = create_token(user["id"], user["role"])
     return {
         "token": token,
-        "user": {
-            "id": user["id"],
-            "email": user["email"],
-            "name": user["name"],
-            "role": user["role"],
-            "points": user["points"],
-            "created_at": user["created_at"]
-        }
+        "user": serialize_user(user),
     }
 
 @api_router.post("/auth/login")
@@ -186,26 +197,12 @@ async def login(data: UserLogin):
     token = create_token(user["id"], user["role"])
     return {
         "token": token,
-        "user": {
-            "id": user["id"],
-            "email": user["email"],
-            "name": user["name"],
-            "role": user["role"],
-            "points": user["points"],
-            "created_at": user["created_at"]
-        }
+        "user": serialize_user(user),
     }
 
 @api_router.get("/auth/me")
 async def get_me(user=Depends(get_current_user)):
-    return {
-        "id": user["id"],
-        "email": user["email"],
-        "name": user["name"],
-        "role": user["role"],
-        "points": user["points"],
-        "created_at": user["created_at"]
-    }
+    return serialize_user(user)
 
 # ── Customer routes ─────────────────────────────────────
 
@@ -266,6 +263,39 @@ async def get_my_redemptions(user=Depends(get_current_user)):
         {"user_id": user["id"]}, {"_id": 0}
     ).sort("created_at", -1).to_list(100)
     return redemptions
+
+@api_router.post("/club/waitlist")
+async def join_club_waitlist(user=Depends(get_current_user)):
+    if user.get("club_member", False):
+        return {
+            "message": "Membership already active",
+            "user": serialize_user(user),
+        }
+
+    if user.get("club_waitlist", False):
+        return {
+            "message": "Already on the club waitlist",
+            "user": serialize_user(user),
+        }
+
+    updated_user = await db.users.find_one_and_update(
+        {"id": user["id"]},
+        {
+            "$set": {
+                "club_waitlist": True,
+                "club_waitlist_joined_at": datetime.now(timezone.utc).isoformat(),
+            }
+        },
+        projection={"_id": 0},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {
+        "message": "Added to the club waitlist",
+        "user": serialize_user(updated_user),
+    }
 
 @api_router.get("/history")
 async def get_history(user=Depends(get_current_user)):
@@ -452,7 +482,11 @@ async def seed_data():
             "name": "Admin Esencia",
             "role": "admin",
             "points": 0,
-            "created_at": datetime.now(timezone.utc).isoformat()
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "club_member": False,
+            "membership_tier": None,
+            "club_waitlist": False,
+            "club_waitlist_joined_at": None,
         }
         await db.users.insert_one(admin_user)
         logger.warning("Default admin user created for local/demo use: %s", ADMIN_EMAIL)
@@ -514,7 +548,11 @@ async def seed_data():
             "name": "María García",
             "role": "customer",
             "points": 15,
-            "created_at": datetime.now(timezone.utc).isoformat()
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "club_member": False,
+            "membership_tier": None,
+            "club_waitlist": False,
+            "club_waitlist_joined_at": None,
         }
         await db.users.insert_one(demo_user)
         logger.warning("Demo customer created for local/demo use: %s", DEMO_CUSTOMER_EMAIL)

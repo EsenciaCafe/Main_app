@@ -58,6 +58,15 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="club"
+        options={{
+          title: 'Club',
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="star" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="qrcode"
         options={{
           title: 'Mi QR',

@@ -108,3 +108,46 @@ def test_admin_points_rejects_negative_values():
     )
 
     assert response.status_code == 422
+
+
+def test_club_waitlist_sets_user_flags():
+    create_user_response = requests.post(
+        f'{BASE_URL}/api/auth/register',
+        json={
+            'email': f"club_waitlist_{os.urandom(4).hex()}@test.com",
+            'password': 'test123',
+            'name': 'Club Waitlist',
+        },
+        headers={'Content-Type': 'application/json'},
+        timeout=10,
+    )
+    assert create_user_response.status_code == 200, create_user_response.text
+
+    created_user = create_user_response.json()['user']
+    token = create_user_response.json()['token']
+    assert created_user['club_member'] is False
+    assert created_user['club_waitlist'] is False
+    assert created_user['club_waitlist_joined_at'] is None
+
+    response = requests.post(
+        f'{BASE_URL}/api/club/waitlist',
+        headers={'Authorization': f'Bearer {token}'},
+        timeout=10,
+    )
+
+    assert response.status_code == 200, response.text
+    data = response.json()
+    assert data['message'] == 'Added to the club waitlist'
+    assert data['user']['club_member'] is False
+    assert data['user']['club_waitlist'] is True
+    assert data['user']['club_waitlist_joined_at']
+
+    me_response = requests.get(
+        f'{BASE_URL}/api/auth/me',
+        headers={'Authorization': f'Bearer {token}'},
+        timeout=10,
+    )
+    assert me_response.status_code == 200, me_response.text
+    me_data = me_response.json()
+    assert me_data['club_waitlist'] is True
+    assert me_data['club_waitlist_joined_at']

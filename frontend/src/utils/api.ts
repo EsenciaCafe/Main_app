@@ -21,6 +21,10 @@ export type User = {
   role: string;
   points: number;
   created_at: string;
+  club_member?: boolean;
+  membership_tier?: string | null;
+  club_waitlist?: boolean;
+  club_waitlist_joined_at?: string | null;
 };
 
 export type Promotion = {
@@ -197,6 +201,11 @@ export const api = {
     }),
 
   getMe: () => request<User>('/auth/me'),
+
+  joinClubWaitlist: () =>
+    request<{ message: string; user: User }>('/club/waitlist', {
+      method: 'POST',
+    }),
 
   getPromotions: () => request<Promotion[]>('/promotions'),
 
