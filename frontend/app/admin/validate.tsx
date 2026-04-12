@@ -1,7 +1,13 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, Alert, ActivityIndicator,
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  RefreshControl,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
@@ -20,7 +26,11 @@ export default function ValidateScreen() {
     } catch {}
   }, []);
 
-  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -31,7 +41,7 @@ export default function ValidateScreen() {
   const handleValidate = (redemption: any) => {
     Alert.alert(
       'Validar Canje',
-      `¿Validar "${redemption.promotion_title}" para ${redemption.user_name}?\n\nCódigo: ${redemption.code}`,
+      `Validar "${redemption.promotion_title}" para ${redemption.user_name}?\n\nCodigo: ${redemption.code}`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -63,42 +73,45 @@ export default function ValidateScreen() {
         <View style={styles.emptyState}>
           <Feather name="check-circle" size={48} color={Colors.border} />
           <Text style={styles.emptyTitle}>Sin canjes pendientes</Text>
-          <Text style={styles.emptyText}>Los canjes de clientes aparecerán aquí</Text>
+          <Text style={styles.emptyText}>Los canjes de clientes apareceran aqui</Text>
         </View>
       ) : (
-        redemptions.map((r) => (
-          <View key={r.id} testID={`pending-redemption-${r.id}`} style={styles.card}>
+        redemptions.map((redemption) => (
+          <View key={redemption.id} testID={`pending-redemption-${redemption.id}`} style={styles.card}>
             <View style={styles.cardHeader}>
               <View style={styles.cardIcon}>
                 <Feather name="gift" size={20} color={Colors.primary} />
               </View>
               <View style={styles.cardInfo}>
-                <Text style={styles.cardTitle}>{r.promotion_title}</Text>
-                <Text style={styles.cardCustomer}>{r.user_name}</Text>
+                <Text style={styles.cardTitle}>{redemption.promotion_title}</Text>
+                <Text style={styles.cardCustomer}>{redemption.user_name}</Text>
               </View>
             </View>
 
             <View style={styles.codeRow}>
-              <Text style={styles.codeLabel}>Código:</Text>
-              <Text style={styles.codeValue}>{r.code}</Text>
+              <Text style={styles.codeLabel}>Codigo:</Text>
+              <Text style={styles.codeValue}>{redemption.code}</Text>
             </View>
 
             <View style={styles.detailRow}>
-              <Text style={styles.detailText}>Puntos: {r.points_used}</Text>
+              <Text style={styles.detailText}>Puntos: {redemption.points_used}</Text>
               <Text style={styles.detailText}>
-                {new Date(r.created_at).toLocaleDateString('es-ES', {
-                  day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                {new Date(redemption.created_at).toLocaleDateString('es-ES', {
+                  day: 'numeric',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit',
                 })}
               </Text>
             </View>
 
             <TouchableOpacity
-              testID={`validate-btn-${r.id}`}
+              testID={`validate-btn-${redemption.id}`}
               style={styles.validateButton}
-              onPress={() => handleValidate(r)}
-              disabled={validating === r.id}
+              onPress={() => handleValidate(redemption)}
+              disabled={validating === redemption.id}
             >
-              {validating === r.id ? (
+              {validating === redemption.id ? (
                 <ActivityIndicator color={Colors.primaryForeground} size="small" />
               ) : (
                 <>

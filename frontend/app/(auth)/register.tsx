@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Image,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -24,12 +32,15 @@ export default function RegisterScreen() {
       setError('Completa todos los campos');
       return;
     }
+
     if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+      setError('La contrasena debe tener al menos 6 caracteres');
       return;
     }
+
     setLoading(true);
     setError('');
+
     try {
       await register(email.trim().toLowerCase(), password, name.trim());
       router.replace('/(tabs)/home');
@@ -52,7 +63,7 @@ export default function RegisterScreen() {
           </View>
 
           <Text style={styles.title}>Crear Cuenta</Text>
-          <Text style={styles.subtitle}>Únete al programa de fidelización de Esencia</Text>
+          <Text style={styles.subtitle}>Unete al programa de fidelizacion de Esencia</Text>
 
           {error ? (
             <View style={styles.errorBox}>
@@ -87,11 +98,11 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Contraseña</Text>
+            <Text style={styles.label}>Contrasena</Text>
             <TextInput
               testID="register-password-input"
               style={styles.input}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Minimo 6 caracteres"
               placeholderTextColor={Colors.textSecondary}
               value={password}
               onChangeText={setPassword}
@@ -118,7 +129,7 @@ export default function RegisterScreen() {
             onPress={() => router.back()}
           >
             <Text style={styles.linkText}>
-              ¿Ya tienes cuenta? <Text style={styles.linkBold}>Inicia sesión</Text>
+              Ya tienes cuenta? <Text style={styles.linkBold}>Inicia sesion</Text>
             </Text>
           </TouchableOpacity>
         </ScrollView>

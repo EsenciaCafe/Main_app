@@ -1,7 +1,13 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, Alert, ActivityIndicator,
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  RefreshControl,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -39,12 +45,16 @@ export default function PromotionsScreen() {
 
   const handleRedeem = async (promo: any) => {
     if ((user?.points || 0) < promo.points_required) {
-      Alert.alert('Puntos insuficientes', `Necesitas ${promo.points_required} puntos para canjear esta promoción. Tienes ${user?.points || 0}.`);
+      Alert.alert(
+        'Puntos insuficientes',
+        `Necesitas ${promo.points_required} puntos para canjear esta promocion. Tienes ${user?.points || 0}.`
+      );
       return;
     }
+
     Alert.alert(
       'Confirmar Canje',
-      `¿Quieres canjear "${promo.title}" por ${promo.points_required} puntos?`,
+      `Quieres canjear "${promo.title}" por ${promo.points_required} puntos?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -56,7 +66,7 @@ export default function PromotionsScreen() {
               await refreshUser();
               Alert.alert(
                 'Canjeado',
-                `Tu código de canje es: ${result.code}\n\nMuéstralo al personal para validar tu recompensa.`
+                `Tu codigo de canje es: ${result.code}\n\nMuestralo al personal para validar tu recompensa.`
               );
             } catch (err: any) {
               Alert.alert('Error', err.message);
@@ -92,7 +102,6 @@ export default function PromotionsScreen() {
         <Text style={styles.title}>Promociones</Text>
         <Text style={styles.subtitle}>Canjea tus puntos por recompensas</Text>
 
-        {/* Points indicator */}
         <View style={styles.pointsBanner}>
           <Feather name="award" size={18} color={Colors.accent} />
           <Text style={styles.pointsBannerText}>
@@ -103,6 +112,7 @@ export default function PromotionsScreen() {
         {promotions.map((promo) => {
           const canRedeem = (user?.points || 0) >= promo.points_required;
           const bgColor = categoryColors[promo.category] || '#FFF3E0';
+
           return (
             <View key={promo.id} testID={`promotion-${promo.id}`} style={styles.promoCard}>
               <View style={styles.promoHeader}>
@@ -121,7 +131,6 @@ export default function PromotionsScreen() {
 
               <Text style={styles.promoDescription}>{promo.description}</Text>
 
-              {/* Progress bar */}
               <View style={styles.progressContainer}>
                 <View style={styles.progressBar}>
                   <View
@@ -141,10 +150,7 @@ export default function PromotionsScreen() {
 
               <TouchableOpacity
                 testID={`redeem-btn-${promo.id}`}
-                style={[
-                  styles.redeemButton,
-                  !canRedeem && styles.redeemButtonDisabled,
-                ]}
+                style={[styles.redeemButton, !canRedeem && styles.redeemButtonDisabled]}
                 onPress={() => handleRedeem(promo)}
                 disabled={!canRedeem || redeeming === promo.id}
               >
@@ -152,7 +158,11 @@ export default function PromotionsScreen() {
                   <ActivityIndicator color={Colors.primaryForeground} size="small" />
                 ) : (
                   <>
-                    <Feather name="check-circle" size={18} color={canRedeem ? Colors.primaryForeground : Colors.textSecondary} />
+                    <Feather
+                      name="check-circle"
+                      size={18}
+                      color={canRedeem ? Colors.primaryForeground : Colors.textSecondary}
+                    />
                     <Text style={[styles.redeemText, !canRedeem && styles.redeemTextDisabled]}>
                       {canRedeem ? 'Canjear Ahora' : 'Puntos Insuficientes'}
                     </Text>

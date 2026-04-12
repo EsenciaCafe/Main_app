@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator,
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -21,12 +27,13 @@ export default function ScannerScreen() {
       Alert.alert('Error', 'Ingresa el ID del cliente');
       return;
     }
+
     setLoading(true);
     try {
-      const c = await api.getCustomer(customerId.trim());
-      setCustomer(c);
+      const foundCustomer = await api.getCustomer(customerId.trim());
+      setCustomer(foundCustomer);
     } catch {
-      Alert.alert('No encontrado', 'No se encontró un cliente con ese ID');
+      Alert.alert('No encontrado', 'No se encontro un cliente con ese ID');
     } finally {
       setLoading(false);
     }
@@ -34,9 +41,10 @@ export default function ScannerScreen() {
 
   const handleAddPoints = async () => {
     if (!points || !reason) {
-      Alert.alert('Error', 'Completa puntos y razón');
+      Alert.alert('Error', 'Completa puntos y razon');
       return;
     }
+
     setAdding(true);
     try {
       const parsedPoints = Number.parseInt(points, 10);
@@ -45,6 +53,7 @@ export default function ScannerScreen() {
         setAdding(false);
         return;
       }
+
       const result = await api.addPoints(customer.id, parsedPoints, reason.trim());
       Alert.alert('Puntos Agregados', `${points} puntos agregados a ${customer.name}`);
       setCustomer({ ...customer, points: result.customer.points });
@@ -57,7 +66,7 @@ export default function ScannerScreen() {
     }
   };
 
-  const quickReasons = ['Café', 'Desayuno', 'Bebida Especial', 'Mini Pancakes'];
+  const quickReasons = ['Cafe', 'Desayuno', 'Bebida Especial', 'Mini Pancakes'];
 
   return (
     <View style={styles.container}>
@@ -68,7 +77,7 @@ export default function ScannerScreen() {
           </View>
           <Text style={styles.scanTitle}>Identificar Cliente</Text>
           <Text style={styles.scanSubtitle}>
-            Ingresa el ID del cliente que aparece en su código QR
+            Ingresa el ID del cliente que aparece en su codigo QR
           </Text>
 
           <View style={styles.inputRow}>
@@ -133,14 +142,14 @@ export default function ScannerScreen() {
             />
 
             <View style={styles.quickReasons}>
-              {quickReasons.map((r) => (
+              {quickReasons.map((currentReason) => (
                 <TouchableOpacity
-                  key={r}
-                  style={[styles.reasonChip, reason === r && styles.reasonChipActive]}
-                  onPress={() => setReason(r)}
+                  key={currentReason}
+                  style={[styles.reasonChip, reason === currentReason && styles.reasonChipActive]}
+                  onPress={() => setReason(currentReason)}
                 >
-                  <Text style={[styles.reasonText, reason === r && styles.reasonTextActive]}>
-                    {r}
+                  <Text style={[styles.reasonText, reason === currentReason && styles.reasonTextActive]}>
+                    {currentReason}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -165,7 +174,10 @@ export default function ScannerScreen() {
             <TouchableOpacity
               testID="scan-another-btn"
               style={styles.scanAnotherButton}
-              onPress={() => { setCustomer(null); setCustomerId(''); }}
+              onPress={() => {
+                setCustomer(null);
+                setCustomerId('');
+              }}
             >
               <Feather name="refresh-cw" size={16} color={Colors.primary} />
               <Text style={styles.scanAnotherText}>Escanear Otro Cliente</Text>

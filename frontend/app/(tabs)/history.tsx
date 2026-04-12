@@ -1,6 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, RefreshControl,
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -32,13 +36,13 @@ export default function HistoryScreen() {
   };
 
   function formatDate(dateStr: string) {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
   function formatTime(dateStr: string) {
-    const d = new Date(dateStr);
-    return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   }
 
   return (
@@ -55,15 +59,17 @@ export default function HistoryScreen() {
           <View style={styles.emptyState}>
             <Feather name="clock" size={48} color={Colors.border} />
             <Text style={styles.emptyTitle}>Sin actividad</Text>
-            <Text style={styles.emptyText}>Tu historial de puntos y canjes aparecerá aquí</Text>
+            <Text style={styles.emptyText}>Tu historial de puntos y canjes aparecera aqui</Text>
           </View>
         ) : (
           history.map((item, index) => (
             <View key={index} testID={`history-item-${index}`} style={styles.historyItem}>
-              <View style={[
-                styles.iconContainer,
-                { backgroundColor: item.type === 'points' ? '#E8F5E9' : '#FFF3E0' }
-              ]}>
+              <View
+                style={[
+                  styles.iconContainer,
+                  { backgroundColor: item.type === 'points' ? '#E8F5E9' : '#FFF3E0' },
+                ]}
+              >
                 <Feather
                   name={item.type === 'points' ? 'plus-circle' : 'gift'}
                   size={20}
@@ -73,27 +79,38 @@ export default function HistoryScreen() {
               <View style={styles.itemInfo}>
                 <Text style={styles.itemDescription}>{item.description}</Text>
                 <Text style={styles.itemDate}>
-                  {formatDate(item.date)} · {formatTime(item.date)}
+                  {formatDate(item.date)} - {formatTime(item.date)}
                 </Text>
                 {item.status && (
-                  <View style={[
-                    styles.statusBadge,
-                    { backgroundColor: item.status === 'validated' ? '#E8F5E9' : '#FFF3E0' }
-                  ]}>
-                    <Text style={[
-                      styles.statusText,
-                      { color: item.status === 'validated' ? Colors.success : Colors.primary }
-                    ]}>
-                      {item.status === 'validated' ? 'Validado' : item.status === 'pending' ? 'Pendiente' : item.status}
+                  <View
+                    style={[
+                      styles.statusBadge,
+                      { backgroundColor: item.status === 'validated' ? '#E8F5E9' : '#FFF3E0' },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.statusText,
+                        { color: item.status === 'validated' ? Colors.success : Colors.primary },
+                      ]}
+                    >
+                      {item.status === 'validated'
+                        ? 'Validado'
+                        : item.status === 'pending'
+                          ? 'Pendiente'
+                          : item.status}
                     </Text>
                   </View>
                 )}
               </View>
-              <Text style={[
-                styles.points,
-                { color: item.points > 0 ? Colors.success : Colors.primary }
-              ]}>
-                {item.points > 0 ? '+' : ''}{item.points}
+              <Text
+                style={[
+                  styles.points,
+                  { color: item.points > 0 ? Colors.success : Colors.primary },
+                ]}
+              >
+                {item.points > 0 ? '+' : ''}
+                {item.points}
               </Text>
             </View>
           ))

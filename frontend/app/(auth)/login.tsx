@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Image,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -23,13 +31,15 @@ export default function LoginScreen() {
       setError('Completa todos los campos');
       return;
     }
+
     setLoading(true);
     setError('');
+
     try {
       await login(email.trim().toLowerCase(), password);
       router.replace('/(tabs)/home');
     } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión');
+      setError(err.message || 'Error al iniciar sesion');
     } finally {
       setLoading(false);
     }
@@ -47,7 +57,7 @@ export default function LoginScreen() {
           </View>
 
           <Text style={styles.title}>Bienvenido</Text>
-          <Text style={styles.subtitle}>Inicia sesión para acumular puntos y recompensas</Text>
+          <Text style={styles.subtitle}>Inicia sesion para acumular puntos y recompensas</Text>
 
           {error ? (
             <View style={styles.errorBox}>
@@ -70,11 +80,11 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Contraseña</Text>
+            <Text style={styles.label}>Contrasena</Text>
             <TextInput
               testID="login-password-input"
               style={styles.input}
-              placeholder="Tu contraseña"
+              placeholder="Tu contrasena"
               placeholderTextColor={Colors.textSecondary}
               value={password}
               onChangeText={setPassword}
@@ -91,7 +101,7 @@ export default function LoginScreen() {
             {loading ? (
               <ActivityIndicator color={Colors.primaryForeground} />
             ) : (
-              <Text style={styles.buttonText}>Iniciar Sesión</Text>
+              <Text style={styles.buttonText}>Iniciar Sesion</Text>
             )}
           </TouchableOpacity>
 
@@ -101,7 +111,7 @@ export default function LoginScreen() {
             onPress={() => router.push('/(auth)/register')}
           >
             <Text style={styles.linkText}>
-              ¿No tienes cuenta? <Text style={styles.linkBold}>Regístrate</Text>
+              No tienes cuenta? <Text style={styles.linkBold}>Registrate</Text>
             </Text>
           </TouchableOpacity>
         </ScrollView>

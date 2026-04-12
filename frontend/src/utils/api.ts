@@ -104,6 +104,43 @@ async function parseResponseBody(response: Response) {
   return text ? { detail: text } : null;
 }
 
+function normalizeText(value: string): string {
+  return value
+    .replaceAll('\u00c3\u00a1', 'a')
+    .replaceAll('\u00c3\u00a9', 'e')
+    .replaceAll('\u00c3\u00ad', 'i')
+    .replaceAll('\u00c3\u00b3', 'o')
+    .replaceAll('\u00c3\u00ba', 'u')
+    .replaceAll('\u00c3\u00b1', 'n')
+    .replaceAll('\u00c3\u0081', 'A')
+    .replaceAll('\u00c3\u0089', 'E')
+    .replaceAll('\u00c3\u008d', 'I')
+    .replaceAll('\u00c3\u0093', 'O')
+    .replaceAll('\u00c3\u009a', 'U')
+    .replaceAll('\u00c3\u0091', 'N')
+    .replaceAll('\u00c2\u00bf', '')
+    .replaceAll('\u00c2\u00a1', '')
+    .replaceAll('\u00c2\u00b7', '-');
+}
+
+function normalizePayload<T>(payload: T): T {
+  if (typeof payload === 'string') {
+    return normalizeText(payload) as T;
+  }
+
+  if (Array.isArray(payload)) {
+    return payload.map((item) => normalizePayload(item)) as T;
+  }
+
+  if (payload && typeof payload === 'object') {
+    return Object.fromEntries(
+      Object.entries(payload).map(([key, value]) => [key, normalizePayload(value)])
+    ) as T;
+  }
+
+  return payload;
+}
+
 async function request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   ensureBaseUrl();
 
@@ -118,7 +155,7 @@ async function request<T>(endpoint: string, options: RequestOptions = {}): Promi
       signal: controller.signal,
     });
 
-    const data = await parseResponseBody(response);
+    const data = normalizePayload(await parseResponseBody(response));
 
     if (!response.ok) {
       const message =
