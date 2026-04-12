@@ -1,8 +1,55 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const rawBaseUrl = process.env.EXPO_PUBLIC_BACKEND_URL;
-const BASE_URL = rawBaseUrl?.replace(/\/+$/, '');
 const REQUEST_TIMEOUT_MS = 10000;
+const DEFAULT_PRODUCTION_BACKEND_URL = 'https://esencia-rewards.onrender.com';
+const KNOWN_PRODUCTION_WEB_HOSTS = new Set([
+  'esenciacafe-esencia-cafe.expo.app',
+  'esencia-cafe.expo.app',
+]);
+
+function getWebDevelopmentBaseUrl() {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  const { hostname, protocol } = window.location;
+  const isLocalHost =
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname);
+
+  if (!isLocalHost) {
+    return undefined;
+  }
+
+  return `${protocol}//${hostname}:8000`;
+}
+
+function resolveBaseUrl() {
+  if (rawBaseUrl) {
+    return rawBaseUrl.replace(/\/+$/, '');
+  }
+
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const developmentBaseUrl = getWebDevelopmentBaseUrl();
+  if (developmentBaseUrl) {
+    return developmentBaseUrl.replace(/\/+$/, '');
+  }
+
+  if (KNOWN_PRODUCTION_WEB_HOSTS.has(window.location.hostname)) {
+    return DEFAULT_PRODUCTION_BACKEND_URL;
+  }
+
+  // In production web, default to same-origin `/api` when frontend and backend
+  // are served behind the same public domain or reverse proxy.
+  return '';
+}
+
+const BASE_URL = resolveBaseUrl();
 
 export class ApiError extends Error {
   status?: number;
@@ -73,8 +120,10 @@ type RequestOptions = RequestInit & {
 };
 
 function ensureBaseUrl() {
-  if (!BASE_URL) {
-    throw new ApiError('EXPO_PUBLIC_BACKEND_URL is not configured');
+  if (BASE_URL === null) {
+    throw new ApiError(
+      'EXPO_PUBLIC_BACKEND_URL is not configured. In production, either serve the API under the same domain at /api or define the variable explicitly.'
+    );
   }
 }
 

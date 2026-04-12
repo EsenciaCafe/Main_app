@@ -20,7 +20,11 @@
         "backgroundColor": "#FAFAF9"
       },
       "edgeToEdgeEnabled": true,
-      "permissions": ["CAMERA"]
+      "permissions": [
+        "CAMERA",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -47,6 +51,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9dbc61b7-aa76-439a-bba8-88aef08cc716"
+      }
     }
   }
 }
