@@ -51,6 +51,15 @@ export default function AdminDashboard() {
       route: '/admin/add-points',
     },
     {
+      id: 'users',
+      title: 'Editar Usuarios',
+      subtitle: 'Buscar y actualizar cuentas',
+      icon: 'edit-3' as const,
+      color: '#FCEAE6',
+      iconColor: '#C56B49',
+      route: '/admin/manage-users',
+    },
+    {
       id: 'promos',
       title: 'Gestionar Promos',
       subtitle: 'Crear y editar promociones',

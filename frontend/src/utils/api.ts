@@ -115,6 +115,14 @@ export type PromotionPayload = {
   icon: Promotion['icon'];
 };
 
+export type UserUpdatePayload = {
+  name?: string;
+  email?: string;
+  role?: 'customer' | 'admin';
+  club_member?: boolean;
+  membership_tier?: string | null;
+};
+
 type RequestOptions = RequestInit & {
   skipAuth?: boolean;
 };
@@ -268,7 +276,16 @@ export const api = {
   searchCustomers: (q = '') =>
     request<User[]>(`/admin/customers?q=${encodeURIComponent(q)}`),
 
+  searchUsers: (q = '') =>
+    request<User[]>(`/admin/users?q=${encodeURIComponent(q)}`),
+
   getCustomer: (userId: string) => request<User>(`/admin/customer/${userId}`),
+
+  updateUser: (userId: string, data: UserUpdatePayload) =>
+    request<User>(`/admin/user/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 
   addPoints: (userId: string, points: number, reason: string) =>
     request<{ message: string; customer: User }>('/admin/points', {

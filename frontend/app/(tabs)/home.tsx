@@ -67,7 +67,7 @@ export default function HomeScreen() {
             <Feather name="award" size={24} color={Colors.accent} />
           </View>
           <Text style={styles.pointsValue}>{user?.points || 0}</Text>
-          <Text style={styles.pointsHint}>Acumula puntos con cada consumo</Text>
+          <Text style={styles.pointsHint}>Acumula 1 punto por cada euro gastado</Text>
         </View>
 
         {/* Quick Actions */}

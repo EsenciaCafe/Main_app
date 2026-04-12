@@ -35,6 +35,7 @@ export default function AdminLayout() {
     >
       <Stack.Screen name="index" options={{ title: 'Panel Admin' }} />
       <Stack.Screen name="add-points" options={{ title: 'Agregar Puntos' }} />
+      <Stack.Screen name="manage-users" options={{ title: 'Editar Usuarios' }} />
       <Stack.Screen name="manage-promos" options={{ title: 'Promociones' }} />
       <Stack.Screen name="validate" options={{ title: 'Validar Canjes' }} />
       <Stack.Screen name="scanner" options={{ title: 'Escanear QR' }} />

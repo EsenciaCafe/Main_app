@@ -1,6 +1,13 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert,
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  RefreshControl,
+  Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -18,8 +25,8 @@ export default function ProfileScreen() {
   const loadData = useCallback(async () => {
     try {
       await refreshUser();
-      const reds = await api.getMyRedemptions();
-      setRedemptions(reds.slice(0, 5));
+      const recentRedemptions = await api.getMyRedemptions();
+      setRedemptions(recentRedemptions.slice(0, 5));
     } catch {}
   }, [refreshUser]);
 
@@ -35,15 +42,26 @@ export default function ProfileScreen() {
     setRefreshing(false);
   };
 
+  const performLogout = async () => {
+    await logout();
+    router.replace('/(auth)/login');
+  };
+
   const handleLogout = () => {
-    Alert.alert('Cerrar Sesión', '¿Estás seguro?', [
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      if (window.confirm('¿Seguro que quieres cerrar sesion?')) {
+        void performLogout();
+      }
+      return;
+    }
+
+    Alert.alert('Cerrar sesion', '¿Seguro que quieres cerrar sesion?', [
       { text: 'Cancelar', style: 'cancel' },
       {
-        text: 'Cerrar Sesión',
+        text: 'Cerrar sesion',
         style: 'destructive',
-        onPress: async () => {
-          await logout();
-          router.replace('/(auth)/login');
+        onPress: () => {
+          void performLogout();
         },
       },
     ]);
@@ -58,12 +76,9 @@ export default function ProfileScreen() {
       >
         <Text style={styles.title}>Perfil</Text>
 
-        {/* User Card */}
         <View testID="profile-card" style={styles.userCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-            </Text>
+            <Text style={styles.avatarText}>{user?.name?.charAt(0)?.toUpperCase() || 'U'}</Text>
           </View>
           <Text style={styles.userName}>{user?.name}</Text>
           <Text style={styles.userEmail}>{user?.email}</Text>
@@ -73,7 +88,6 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Admin Access */}
         {user?.role === 'admin' && (
           <TouchableOpacity
             testID="admin-panel-btn"
@@ -84,68 +98,72 @@ export default function ProfileScreen() {
               <Feather name="shield" size={22} color={Colors.primaryForeground} />
             </View>
             <View style={styles.adminInfo}>
-              <Text style={styles.adminTitle}>Panel de Administración</Text>
+              <Text style={styles.adminTitle}>Panel de Administracion</Text>
               <Text style={styles.adminSubtitle}>Gestionar clientes, puntos y promociones</Text>
             </View>
             <Feather name="chevron-right" size={20} color={Colors.primaryForeground} />
           </TouchableOpacity>
         )}
 
-        {/* Recent Redemptions */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Canjes Recientes</Text>
+          <Text style={styles.sectionTitle}>Canjes recientes</Text>
         </View>
 
         {redemptions.length === 0 ? (
           <View style={styles.emptyCard}>
             <Feather name="gift" size={32} color={Colors.border} />
-            <Text style={styles.emptyText}>Aún no has canjeado recompensas</Text>
+            <Text style={styles.emptyText}>Aun no has canjeado recompensas</Text>
           </View>
         ) : (
-          redemptions.map((r) => (
-            <View key={r.id} testID={`redemption-${r.id}`} style={styles.redemptionCard}>
+          redemptions.map((redemption) => (
+            <View key={redemption.id} testID={`redemption-${redemption.id}`} style={styles.redemptionCard}>
               <View style={styles.redemptionTop}>
-                <Text style={styles.redemptionTitle}>{r.promotion_title}</Text>
-                <View style={[
-                  styles.statusBadge,
-                  { backgroundColor: r.status === 'validated' ? '#E8F5E9' : '#FFF3E0' }
-                ]}>
-                  <Text style={[
-                    styles.statusText,
-                    { color: r.status === 'validated' ? Colors.success : Colors.primary }
-                  ]}>
-                    {r.status === 'validated' ? 'Validado' : 'Pendiente'}
+                <Text style={styles.redemptionTitle}>{redemption.promotion_title}</Text>
+                <View
+                  style={[
+                    styles.statusBadge,
+                    { backgroundColor: redemption.status === 'validated' ? '#E8F5E9' : '#FFF3E0' },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.statusText,
+                      { color: redemption.status === 'validated' ? Colors.success : Colors.primary },
+                    ]}
+                  >
+                    {redemption.status === 'validated' ? 'Validado' : 'Pendiente'}
                   </Text>
                 </View>
               </View>
-              <Text style={styles.redemptionCode}>Código: {r.code}</Text>
+              <Text style={styles.redemptionCode}>Codigo: {redemption.code}</Text>
               <Text style={styles.redemptionDate}>
-                {new Date(r.created_at).toLocaleDateString('es-ES', {
-                  day: 'numeric', month: 'short', year: 'numeric'
+                {new Date(redemption.created_at).toLocaleDateString('es-ES', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
                 })}
               </Text>
             </View>
           ))
         )}
 
-        {/* Menu Items */}
         <View style={styles.menuSection}>
           <TouchableOpacity testID="my-qr-btn" style={styles.menuItem} onPress={() => router.push('/(tabs)/qrcode')}>
             <Feather name="maximize" size={20} color={Colors.textPrimary} />
-            <Text style={styles.menuText}>Mi Código QR</Text>
+            <Text style={styles.menuText}>Mi codigo QR</Text>
             <Feather name="chevron-right" size={18} color={Colors.textSecondary} />
           </TouchableOpacity>
 
           <TouchableOpacity testID="history-btn" style={styles.menuItem} onPress={() => router.push('/(tabs)/history')}>
             <Feather name="clock" size={20} color={Colors.textPrimary} />
-            <Text style={styles.menuText}>Historial Completo</Text>
+            <Text style={styles.menuText}>Historial completo</Text>
             <Feather name="chevron-right" size={18} color={Colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity testID="logout-btn" style={styles.logoutButton} onPress={handleLogout}>
           <Feather name="log-out" size={18} color={Colors.error} />
-          <Text style={styles.logoutText}>Cerrar Sesión</Text>
+          <Text style={styles.logoutText}>Cerrar sesion</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

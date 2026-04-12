@@ -100,6 +100,28 @@ class PromotionUpdate(BaseModel):
             return None
         return value.strip()
 
+class UserAdminUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=2, max_length=120)
+    email: Optional[EmailStr] = None
+    role: Optional[Literal["customer", "admin"]] = None
+    club_member: Optional[bool] = None
+    membership_tier: Optional[str] = Field(default=None, max_length=80)
+
+    @field_validator("name")
+    @classmethod
+    def normalize_optional_name(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        return value.strip()
+
+    @field_validator("membership_tier")
+    @classmethod
+    def normalize_membership_tier(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        value = value.strip()
+        return value or None
+
 # ── Auth helpers ────────────────────────────────────────
 
 def hash_password(password: str) -> str:
@@ -341,12 +363,49 @@ async def search_customers(q: str = "", user=Depends(get_admin_user)):
     customers = await db.users.find(query, {"_id": 0, "password_hash": 0}).to_list(100)
     return customers
 
+@api_router.get("/admin/users")
+async def search_users(q: str = "", user=Depends(get_admin_user)):
+    query = {}
+    if q:
+        search_term = q.strip()
+        query["$or"] = [
+            {"name": {"$regex": search_term, "$options": "i"}},
+            {"email": {"$regex": search_term, "$options": "i"}},
+        ]
+    users = await db.users.find(query, {"_id": 0, "password_hash": 0}).to_list(100)
+    return users
+
 @api_router.get("/admin/customer/{user_id}")
 async def get_customer(user_id: str, user=Depends(get_admin_user)):
     customer = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
     return customer
+
+@api_router.put("/admin/user/{user_id}")
+async def update_user(user_id: str, data: UserAdminUpdate, user=Depends(get_admin_user)):
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    if "email" in update_data:
+        update_data["email"] = update_data["email"].strip().lower()
+
+    if update_data.get("club_member") is False and "membership_tier" not in update_data:
+        update_data["membership_tier"] = None
+
+    try:
+        result = await db.users.update_one({"id": user_id}, {"$set": update_data})
+    except DuplicateKeyError:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    updated_user = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return updated_user
 
 @api_router.post("/admin/points")
 async def add_points(data: AddPointsRequest, user=Depends(get_admin_user)):
