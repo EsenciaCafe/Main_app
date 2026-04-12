@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -11,12 +11,30 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { api, type User } from '../../src/utils/api';
+import { api, ApiError, type User } from '../../src/utils/api';
 import { Colors, Spacing, BorderRadius, FontSize, Fonts, Shadows } from '../../src/constants/theme';
+
+function filterUsers(users: User[], search: string) {
+  const normalizedSearch = search.trim().toLowerCase();
+  if (!normalizedSearch) {
+    return users;
+  }
+
+  return users.filter((user) => {
+    const normalizedName = user.name?.toLowerCase() ?? '';
+    const normalizedEmail = user.email?.toLowerCase() ?? '';
+    return (
+      normalizedName.includes(normalizedSearch) ||
+      normalizedEmail.includes(normalizedSearch)
+    );
+  });
+}
 
 export default function ManageUsersScreen() {
   const [search, setSearch] = useState('');
+  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [searching, setSearching] = useState(false);
@@ -29,29 +47,49 @@ export default function ManageUsersScreen() {
     membership_tier: '',
   });
 
-  const membershipOptions = useMemo(
-    () => ['Club', 'Gold', 'Founder'],
-    []
-  );
+  const membershipOptions = useMemo(() => ['Club', 'Gold', 'Founder'], []);
 
-  const handleSearch = async () => {
-    if (!search.trim()) {
-      Alert.alert('Busqueda vacia', 'Escribe un nombre o email para buscar.');
-      return;
-    }
+  const syncVisibleUsers = useCallback((nextUsers: User[], currentSearch: string) => {
+    setAllUsers(nextUsers);
+    setUsers(filterUsers(nextUsers, currentSearch));
+  }, []);
 
+  const loadUsers = useCallback(async () => {
     setSearching(true);
     try {
-      const results = await api.searchUsers(search.trim());
-      setUsers(results);
-      setSelectedUser(null);
-      if (results.length === 0) {
-        Alert.alert('Sin resultados', 'No encontramos usuarios con esa busqueda.');
-      }
+      const results = await api.searchUsers('');
+      syncVisibleUsers(results, search);
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
       setSearching(false);
+    }
+  }, [search, syncVisibleUsers]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadUsers();
+    }, [loadUsers])
+  );
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setUsers(filterUsers(allUsers, value));
+    setSelectedUser(null);
+  };
+
+  const handleSearch = async () => {
+    if (allUsers.length === 0) {
+      await loadUsers();
+      return;
+    }
+
+    const filteredUsers = filterUsers(allUsers, search);
+    setUsers(filteredUsers);
+    setSelectedUser(null);
+
+    if (search.trim() && filteredUsers.length === 0) {
+      Alert.alert('Sin resultados', 'No encontramos usuarios con esa busqueda.');
     }
   };
 
@@ -88,9 +126,8 @@ export default function ManageUsersScreen() {
       });
 
       setSelectedUser(updatedUser);
-      setUsers((currentUsers) =>
-        currentUsers.map((user) => (user.id === updatedUser.id ? updatedUser : user))
-      );
+      const nextUsers = allUsers.map((user) => (user.id === updatedUser.id ? updatedUser : user));
+      syncVisibleUsers(nextUsers, search);
       setForm({
         name: updatedUser.name ?? '',
         email: updatedUser.email ?? '',
@@ -100,7 +137,14 @@ export default function ManageUsersScreen() {
       });
       Alert.alert('Usuario actualizado', 'Los cambios se guardaron correctamente.');
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      if (error instanceof ApiError && error.status === 404) {
+        Alert.alert(
+          'Backend sin actualizar',
+          'La busqueda ya funciona con el backend actual, pero para guardar ediciones necesitas publicar tambien la nueva version del backend.'
+        );
+      } else {
+        Alert.alert('Error', error.message);
+      }
     } finally {
       setSaving(false);
     }
@@ -120,13 +164,13 @@ export default function ManageUsersScreen() {
           <TextInput
             testID="search-user-input"
             style={styles.searchInput}
-            placeholder="Buscar por nombre o email..."
+            placeholder="Filtrar por nombre o email..."
             placeholderTextColor={Colors.textSecondary}
             value={search}
-            onChangeText={setSearch}
-            onSubmitEditing={handleSearch}
+            onChangeText={handleSearchChange}
+            onSubmitEditing={() => void handleSearch()}
           />
-          <TouchableOpacity testID="search-user-btn" style={styles.searchButton} onPress={handleSearch}>
+          <TouchableOpacity testID="search-user-btn" style={styles.searchButton} onPress={() => void handleSearch()}>
             {searching ? (
               <ActivityIndicator color={Colors.primaryForeground} size="small" />
             ) : (
@@ -135,9 +179,14 @@ export default function ManageUsersScreen() {
           </TouchableOpacity>
         </View>
 
+        {!selectedUser && (
+          <Text style={styles.resultsLabel}>
+            {search.trim() ? `Resultados: ${users.length}` : `Usuarios cargados: ${users.length}`}
+          </Text>
+        )}
+
         {users.length > 0 && !selectedUser && (
           <View style={styles.resultsSection}>
-            <Text style={styles.resultsLabel}>Usuarios encontrados</Text>
             {users.map((user) => (
               <TouchableOpacity
                 key={user.id}
@@ -157,6 +206,17 @@ export default function ManageUsersScreen() {
                 </View>
               </TouchableOpacity>
             ))}
+          </View>
+        )}
+
+        {!searching && users.length === 0 && !selectedUser && (
+          <View style={styles.emptyCard}>
+            <Feather name="users" size={32} color={Colors.border} />
+            <Text style={styles.emptyText}>
+              {search.trim()
+                ? 'No hay usuarios que coincidan con ese filtro.'
+                : 'No se pudieron cargar usuarios todavia.'}
+            </Text>
           </View>
         )}
 
@@ -401,6 +461,20 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.caption,
     fontSize: FontSize.caption,
     color: Colors.primary,
+  },
+  emptyCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.m,
+    padding: Spacing.xl,
+    alignItems: 'center',
+    ...Shadows.soft,
+  },
+  emptyText: {
+    fontFamily: Fonts.body,
+    fontSize: FontSize.small,
+    color: Colors.textSecondary,
+    marginTop: Spacing.s,
+    textAlign: 'center',
   },
   selectedCard: {
     backgroundColor: Colors.surface,

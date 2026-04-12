@@ -276,8 +276,16 @@ export const api = {
   searchCustomers: (q = '') =>
     request<User[]>(`/admin/customers?q=${encodeURIComponent(q)}`),
 
-  searchUsers: (q = '') =>
-    request<User[]>(`/admin/users?q=${encodeURIComponent(q)}`),
+  searchUsers: async (q = '') => {
+    try {
+      return await request<User[]>(`/admin/users?q=${encodeURIComponent(q)}`);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        return request<User[]>(`/admin/customers?q=${encodeURIComponent(q)}`);
+      }
+      throw error;
+    }
+  },
 
   getCustomer: (userId: string) => request<User>(`/admin/customer/${userId}`),
 
