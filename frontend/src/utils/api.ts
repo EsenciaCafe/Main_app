@@ -124,6 +124,11 @@ export type UserUpdatePayload = {
   membership_tier?: string | null;
 };
 
+export type SearchUsersResponse = {
+  users: User[];
+  legacyFallback: boolean;
+};
+
 type RequestOptions = RequestInit & {
   skipAuth?: boolean;
 };
@@ -283,6 +288,19 @@ export const api = {
     } catch (error) {
       if (error instanceof ApiError && error.status === 404) {
         return request<User[]>(`/admin/customers?q=${encodeURIComponent(q)}`);
+      }
+      throw error;
+    }
+  },
+
+  searchUsersWithMeta: async (q = ''): Promise<SearchUsersResponse> => {
+    try {
+      const users = await request<User[]>(`/admin/users?q=${encodeURIComponent(q)}`);
+      return { users, legacyFallback: false };
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        const users = await request<User[]>(`/admin/customers?q=${encodeURIComponent(q)}`);
+        return { users, legacyFallback: true };
       }
       throw error;
     }

@@ -37,6 +37,7 @@ export default function ManageUsersScreen() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [legacyMode, setLegacyMode] = useState(false);
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -59,8 +60,9 @@ export default function ManageUsersScreen() {
   const loadUsers = useCallback(async () => {
     setSearching(true);
     try {
-      const results = await api.searchUsers('');
-      syncVisibleUsers(results, search);
+      const result = await api.searchUsersWithMeta('');
+      setLegacyMode(result.legacyFallback);
+      syncVisibleUsers(result.users, search);
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
@@ -195,6 +197,17 @@ export default function ManageUsersScreen() {
             )}
           </TouchableOpacity>
         </View>
+
+        {legacyMode && !selectedUser && (
+          <View style={styles.warningCard}>
+            <Feather name="alert-triangle" size={18} color={Colors.primary} />
+            <Text style={styles.warningText}>
+              El backend publicado aun esta en modo antiguo. Ahora mismo solo se cargan clientes,
+              por eso no aparecen admins ni se pueden editar cuentas admin hasta desplegar el
+              backend nuevo.
+            </Text>
+          </View>
+        )}
 
         {!selectedUser && (
           <Text style={styles.resultsLabel}>
@@ -455,6 +468,24 @@ const styles = StyleSheet.create({
   },
   resultsSection: {
     marginBottom: Spacing.m,
+  },
+  warningCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.s,
+    backgroundColor: '#FFF8F0',
+    borderRadius: BorderRadius.m,
+    padding: Spacing.m,
+    marginBottom: Spacing.m,
+    borderWidth: 1,
+    borderColor: '#F0DFC8',
+  },
+  warningText: {
+    flex: 1,
+    fontFamily: Fonts.body,
+    fontSize: FontSize.small,
+    color: Colors.textSecondary,
+    lineHeight: 20,
   },
   resultsLabel: {
     fontFamily: Fonts.caption,
