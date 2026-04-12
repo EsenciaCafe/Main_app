@@ -26,8 +26,8 @@ export default function PromotionsScreen() {
   useFocusEffect(
     useCallback(() => {
       loadData();
-      refreshUser();
-    }, [loadData])
+      void refreshUser();
+    }, [loadData, refreshUser])
   );
 
   const onRefresh = async () => {

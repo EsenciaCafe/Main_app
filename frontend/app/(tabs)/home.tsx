@@ -23,7 +23,7 @@ export default function HomeScreen() {
       const promos = await api.getPromotions();
       setPromotions(promos.slice(0, 3));
     } catch {}
-  }, []);
+  }, [refreshUser]);
 
   useFocusEffect(
     useCallback(() => {

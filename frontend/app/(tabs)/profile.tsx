@@ -21,7 +21,7 @@ export default function ProfileScreen() {
       const reds = await api.getMyRedemptions();
       setRedemptions(reds.slice(0, 5));
     } catch {}
-  }, []);
+  }, [refreshUser]);
 
   useFocusEffect(
     useCallback(() => {

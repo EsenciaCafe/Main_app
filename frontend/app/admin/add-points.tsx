@@ -44,7 +44,7 @@ export default function AddPointsScreen() {
     }
     setLoading(true);
     try {
-      const result = await api.addPoints(selectedCustomer.id, pointsNum, reason);
+      const result = await api.addPoints(selectedCustomer.id, pointsNum, reason.trim());
       Alert.alert(
         'Puntos Agregados',
         `Se agregaron ${pointsNum} puntos a ${selectedCustomer.name}.\nNuevo total: ${result.customer.points} puntos`

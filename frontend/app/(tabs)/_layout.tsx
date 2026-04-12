@@ -1,9 +1,24 @@
-import { Tabs } from 'expo-router';
+import { Tabs, Redirect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { Colors, Fonts, FontSize } from '../../src/constants/theme';
-import { Platform } from 'react-native';
+import { Platform, View, ActivityIndicator } from 'react-native';
+import { useAuth } from '../../src/context/AuthContext';
 
 export default function TabsLayout() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.background }}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </View>
+    );
+  }
+
+  if (!user) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
   return (
     <Tabs
       screenOptions={{

@@ -25,7 +25,7 @@ export default function ScannerScreen() {
     try {
       const c = await api.getCustomer(customerId.trim());
       setCustomer(c);
-    } catch (err: any) {
+    } catch {
       Alert.alert('No encontrado', 'No se encontró un cliente con ese ID');
     } finally {
       setLoading(false);
@@ -39,7 +39,13 @@ export default function ScannerScreen() {
     }
     setAdding(true);
     try {
-      const result = await api.addPoints(customer.id, parseInt(points), reason);
+      const parsedPoints = Number.parseInt(points, 10);
+      if (Number.isNaN(parsedPoints) || parsedPoints <= 0) {
+        Alert.alert('Error', 'Ingresa una cantidad valida de puntos');
+        setAdding(false);
+        return;
+      }
+      const result = await api.addPoints(customer.id, parsedPoints, reason.trim());
       Alert.alert('Puntos Agregados', `${points} puntos agregados a ${customer.name}`);
       setCustomer({ ...customer, points: result.customer.points });
       setPoints('');

@@ -5,14 +5,16 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from pydantic import BaseModel, Field, EmailStr, field_validator
+from typing import Optional, Literal
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import bcrypt
 import jwt
 import random
 import string
+from pymongo import ReturnDocument
+from pymongo.errors import DuplicateKeyError
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -23,6 +25,21 @@ db = client[os.environ['DB_NAME']]
 
 JWT_SECRET = os.environ['JWT_SECRET']
 JWT_ALGORITHM = 'HS256'
+JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "60"))
+APP_ENV = os.getenv("APP_ENV", "development").lower()
+SEED_DEFAULT_DATA = os.getenv(
+    "SEED_DEFAULT_DATA",
+    "true" if APP_ENV != "production" else "false",
+).lower() == "true"
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("ALLOWED_ORIGINS", "*").split(",")
+    if origin.strip()
+]
+ADMIN_EMAIL = os.getenv("DEMO_ADMIN_EMAIL", "admin@esencia.com").strip().lower()
+ADMIN_PASSWORD = os.getenv("DEMO_ADMIN_PASSWORD", "admin123")
+DEMO_CUSTOMER_EMAIL = os.getenv("DEMO_CUSTOMER_EMAIL", "cliente@test.com").strip().lower()
+DEMO_CUSTOMER_PASSWORD = os.getenv("DEMO_CUSTOMER_PASSWORD", "test123")
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -33,33 +50,55 @@ logger = logging.getLogger(__name__)
 # ── Models ──────────────────────────────────────────────
 
 class UserCreate(BaseModel):
-    email: str
-    password: str
-    name: str
+    email: EmailStr
+    password: str = Field(min_length=6, max_length=128)
+    name: str = Field(min_length=2, max_length=120)
+
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str) -> str:
+        return value.strip()
 
 class UserLogin(BaseModel):
-    email: str
-    password: str
+    email: EmailStr
+    password: str = Field(min_length=1, max_length=128)
 
 class PromotionCreate(BaseModel):
-    title: str
-    description: str
-    points_required: int
-    category: str = "coffee"
-    icon: str = "coffee"
+    title: str = Field(min_length=3, max_length=120)
+    description: str = Field(min_length=8, max_length=500)
+    points_required: int = Field(gt=0, le=1000)
+    category: Literal["coffee", "food", "special"] = "coffee"
+    icon: Literal["coffee", "gift", "star", "heart"] = "coffee"
+
+    @field_validator("title", "description")
+    @classmethod
+    def strip_text_fields(cls, value: str) -> str:
+        return value.strip()
 
 class AddPointsRequest(BaseModel):
-    user_id: str
-    points: int
-    reason: str
+    user_id: str = Field(min_length=1, max_length=64)
+    points: int = Field(gt=0, le=1000)
+    reason: str = Field(min_length=3, max_length=160)
+
+    @field_validator("reason")
+    @classmethod
+    def strip_reason(cls, value: str) -> str:
+        return value.strip()
 
 class PromotionUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    points_required: Optional[int] = None
-    category: Optional[str] = None
-    icon: Optional[str] = None
+    title: Optional[str] = Field(default=None, min_length=3, max_length=120)
+    description: Optional[str] = Field(default=None, min_length=8, max_length=500)
+    points_required: Optional[int] = Field(default=None, gt=0, le=1000)
+    category: Optional[Literal["coffee", "food", "special"]] = None
+    icon: Optional[Literal["coffee", "gift", "star", "heart"]] = None
     is_active: Optional[bool] = None
+
+    @field_validator("title", "description")
+    @classmethod
+    def strip_optional_text(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        return value.strip()
 
 # ── Auth helpers ────────────────────────────────────────
 
@@ -70,7 +109,18 @@ def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
 def create_token(user_id: str, role: str) -> str:
-    return jwt.encode({"user_id": user_id, "role": role}, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(minutes=JWT_EXPIRE_MINUTES)
+    return jwt.encode(
+        {
+            "user_id": user_id,
+            "role": role,
+            "iat": now,
+            "exp": expires_at,
+        },
+        JWT_SECRET,
+        algorithm=JWT_ALGORITHM,
+    )
 
 async def get_current_user(authorization: str = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):
@@ -82,6 +132,8 @@ async def get_current_user(authorization: str = Header(None)):
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
         return user
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
@@ -95,19 +147,23 @@ async def get_admin_user(authorization: str = Header(None)):
 
 @api_router.post("/auth/register")
 async def register(data: UserCreate):
-    existing = await db.users.find_one({"email": data.email})
+    normalized_email = data.email.strip().lower()
+    existing = await db.users.find_one({"email": normalized_email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
     user = {
         "id": str(uuid.uuid4()),
-        "email": data.email,
+        "email": normalized_email,
         "password_hash": hash_password(data.password),
         "name": data.name,
         "role": "customer",
         "points": 0,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
-    await db.users.insert_one(user)
+    try:
+        await db.users.insert_one(user)
+    except DuplicateKeyError:
+        raise HTTPException(status_code=400, detail="Email already registered")
     token = create_token(user["id"], user["role"])
     return {
         "token": token,
@@ -123,7 +179,8 @@ async def register(data: UserCreate):
 
 @api_router.post("/auth/login")
 async def login(data: UserLogin):
-    user = await db.users.find_one({"email": data.email}, {"_id": 0})
+    normalized_email = data.email.strip().lower()
+    user = await db.users.find_one({"email": normalized_email}, {"_id": 0})
     if not user or not verify_password(data.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_token(user["id"], user["role"])
@@ -162,8 +219,6 @@ async def redeem_promotion(promotion_id: str, user=Depends(get_current_user)):
     promo = await db.promotions.find_one({"id": promotion_id, "is_active": True}, {"_id": 0})
     if not promo:
         raise HTTPException(status_code=404, detail="Promotion not found")
-    if user["points"] < promo["points_required"]:
-        raise HTTPException(status_code=400, detail="Not enough points")
 
     code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
     redemption = {
@@ -179,7 +234,17 @@ async def redeem_promotion(promotion_id: str, user=Depends(get_current_user)):
         "validated_at": None
     }
 
-    await db.users.update_one({"id": user["id"]}, {"$inc": {"points": -promo["points_required"]}})
+    updated_user = await db.users.find_one_and_update(
+        {
+            "id": user["id"],
+            "points": {"$gte": promo["points_required"]},
+        },
+        {"$inc": {"points": -promo["points_required"]}},
+        projection={"_id": 0},
+        return_document=ReturnDocument.AFTER,
+    )
+    if not updated_user:
+        raise HTTPException(status_code=400, detail="Not enough points")
     await db.redemptions.insert_one(redemption)
 
     return {
@@ -238,9 +303,10 @@ async def get_history(user=Depends(get_current_user)):
 async def search_customers(q: str = "", user=Depends(get_admin_user)):
     query = {"role": "customer"}
     if q:
+        search_term = q.strip()
         query["$or"] = [
-            {"name": {"$regex": q, "$options": "i"}},
-            {"email": {"$regex": q, "$options": "i"}}
+            {"name": {"$regex": search_term, "$options": "i"}},
+            {"email": {"$regex": search_term, "$options": "i"}}
         ]
     customers = await db.users.find(query, {"_id": 0, "password_hash": 0}).to_list(100)
     return customers
@@ -301,7 +367,7 @@ async def create_promotion(data: PromotionCreate, user=Depends(get_admin_user)):
 
 @api_router.put("/admin/promotions/{promo_id}")
 async def update_promotion(promo_id: str, data: PromotionUpdate, user=Depends(get_admin_user)):
-    update_data = {k: v for k, v in data.dict().items() if v is not None}
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
     result = await db.promotions.update_one({"id": promo_id}, {"$set": update_data})
@@ -364,19 +430,32 @@ async def get_stats(user=Depends(get_admin_user)):
 
 @app.on_event("startup")
 async def seed_data():
-    admin = await db.users.find_one({"email": "admin@esencia.com"})
+    await db.users.create_index("id", unique=True)
+    await db.users.create_index("email", unique=True)
+    await db.promotions.create_index("id", unique=True)
+    await db.redemptions.create_index("id", unique=True)
+    await db.redemptions.create_index("user_id")
+    await db.redemptions.create_index("status")
+    await db.point_transactions.create_index("id", unique=True)
+    await db.point_transactions.create_index("user_id")
+
+    if not SEED_DEFAULT_DATA:
+        logger.info("Default seed data disabled for APP_ENV=%s", APP_ENV)
+        return
+
+    admin = await db.users.find_one({"email": ADMIN_EMAIL})
     if not admin:
         admin_user = {
             "id": str(uuid.uuid4()),
-            "email": "admin@esencia.com",
-            "password_hash": hash_password("admin123"),
+            "email": ADMIN_EMAIL,
+            "password_hash": hash_password(ADMIN_PASSWORD),
             "name": "Admin Esencia",
             "role": "admin",
             "points": 0,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.users.insert_one(admin_user)
-        logger.info("Admin user created: admin@esencia.com / admin123")
+        logger.warning("Default admin user created for local/demo use: %s", ADMIN_EMAIL)
 
     count = await db.promotions.count_documents({})
     if count == 0:
@@ -426,19 +505,19 @@ async def seed_data():
         logger.info("Sample promotions created")
 
     # Create a demo customer for testing
-    demo = await db.users.find_one({"email": "cliente@test.com"})
+    demo = await db.users.find_one({"email": DEMO_CUSTOMER_EMAIL})
     if not demo:
         demo_user = {
             "id": str(uuid.uuid4()),
-            "email": "cliente@test.com",
-            "password_hash": hash_password("test123"),
+            "email": DEMO_CUSTOMER_EMAIL,
+            "password_hash": hash_password(DEMO_CUSTOMER_PASSWORD),
             "name": "María García",
             "role": "customer",
             "points": 15,
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.users.insert_one(demo_user)
-        logger.info("Demo customer created: cliente@test.com / test123")
+        logger.warning("Demo customer created for local/demo use: %s", DEMO_CUSTOMER_EMAIL)
 
 # ── App setup ───────────────────────────────────────────
 
@@ -446,8 +525,8 @@ app.include_router(api_router)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=["*"],
+    allow_credentials=False,
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )

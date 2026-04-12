@@ -37,10 +37,16 @@ export default function ManagePromosScreen() {
     }
     setLoading(true);
     try {
+      const parsedPoints = Number.parseInt(form.points_required, 10);
+      if (Number.isNaN(parsedPoints) || parsedPoints <= 0) {
+        Alert.alert('Error', 'Los puntos requeridos deben ser un numero positivo');
+        setLoading(false);
+        return;
+      }
       await api.createPromotion({
-        title: form.title,
-        description: form.description,
-        points_required: parseInt(form.points_required),
+        title: form.title.trim(),
+        description: form.description.trim(),
+        points_required: parsedPoints,
         category: form.category,
         icon: form.icon,
       });

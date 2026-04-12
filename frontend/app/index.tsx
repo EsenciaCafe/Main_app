@@ -11,12 +11,12 @@ export default function Index() {
   useEffect(() => {
     if (!loading) {
       if (user) {
-        router.replace('/(tabs)/home');
+        router.replace(user.role === 'admin' ? '/admin' : '/(tabs)/home');
       } else {
         router.replace('/(auth)/login');
       }
     }
-  }, [user, loading]);
+  }, [user, loading, router]);
 
   return (
     <View style={styles.container}>
