@@ -87,3 +87,8 @@ android-sdk/
 !.env.example
 !backend/.env.example
 !frontend/.env.example
+
+.metro-cache
+node_modules
+.env
+

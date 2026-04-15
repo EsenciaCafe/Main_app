@@ -48,7 +48,10 @@ export default function ManageUsersScreen() {
     role: 'customer' as 'customer' | 'admin',
     club_member: false,
     membership_tier: '',
+    uid: '',
   });
+
+  const [waitingRFID, setWaitingRFID] = useState(false);
 
   const membershipOptions = useMemo(() => ['Club', 'Gold', 'Founder'], []);
 
@@ -107,6 +110,7 @@ export default function ManageUsersScreen() {
       role: user.role === 'admin' ? 'admin' : 'customer',
       club_member: Boolean(user.club_member),
       membership_tier: user.membership_tier ?? '',
+      uid: user.uid ?? '',
     });
   };
 
@@ -140,6 +144,7 @@ export default function ManageUsersScreen() {
         role: form.role,
         club_member: form.club_member,
         membership_tier: form.club_member ? form.membership_tier.trim() || null : null,
+        uid: form.uid.trim() || null,
       });
 
       setSelectedUser(updatedUser);
@@ -153,6 +158,7 @@ export default function ManageUsersScreen() {
         role: updatedUser.role === 'admin' ? 'admin' : 'customer',
         club_member: Boolean(updatedUser.club_member),
         membership_tier: updatedUser.membership_tier ?? '',
+        uid: updatedUser.uid ?? '',
       });
       Alert.alert('Usuario actualizado', 'Los cambios se guardaron correctamente.');
     } catch (error: any) {
@@ -168,6 +174,13 @@ export default function ManageUsersScreen() {
       setSaving(false);
     }
   };
+
+  const handleAssignRFID = async () => {
+  if (!selectedUser) return;
+
+  setWaitingRFID(true);
+  Alert.alert('Esperando llavero', 'Pasa el llavero por el lector...');
+};
 
   return (
     <KeyboardAvoidingView
@@ -292,6 +305,20 @@ export default function ManageUsersScreen() {
                 autoCapitalize="none"
                 keyboardType="email-address"
                 placeholder="Email"
+                placeholderTextColor={Colors.textSecondary}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>UID del llavero</Text>
+              <TextInput
+                style={styles.input}
+                value={form.uid}
+                onChangeText={(value) =>
+                  setForm((current) => ({ ...current, uid: value.toUpperCase() }))
+                }
+                autoCapitalize="characters"
+                placeholder="Ej: 04A1B29C7F11"
                 placeholderTextColor={Colors.textSecondary}
               />
             </View>
@@ -426,9 +453,17 @@ export default function ManageUsersScreen() {
                 <>
                   <Feather name="save" size={18} color={Colors.primaryForeground} />
                   <Text style={styles.submitText}>Guardar cambios</Text>
+                  
                 </>
               )}
             </TouchableOpacity>
+            <TouchableOpacity
+  style={[styles.submitButton, { backgroundColor: '#111827' }]}
+  onPress={handleAssignRFID}
+>
+  <Feather name="credit-card" size={18} color="#fff" />
+  <Text style={styles.submitText}>Asignar llavero</Text>
+</TouchableOpacity>
           </>
         )}
       </ScrollView>

@@ -68,6 +68,7 @@ export type User = {
   role: string;
   points: number;
   created_at: string;
+  uid?: string | null;
   club_member?: boolean;
   membership_tier?: string | null;
   club_waitlist?: boolean;
@@ -122,6 +123,7 @@ export type UserUpdatePayload = {
   role?: 'customer' | 'admin';
   club_member?: boolean;
   membership_tier?: string | null;
+  uid?: string | null;
 };
 
 export type SearchUsersResponse = {
@@ -308,6 +310,9 @@ export const api = {
 
   getCustomer: (userId: string) => request<User>(`/admin/customer/${userId}`),
 
+  getCustomerByUid: (uid: string) =>
+    request<User>(`/admin/customer-by-uid/${encodeURIComponent(uid)}`),
+
   updateUser: (userId: string, data: UserUpdatePayload) =>
     request<User>(`/admin/user/${userId}`, {
       method: 'PUT',
@@ -351,4 +356,20 @@ export const api = {
       pending_redemptions: number;
       active_promos: number;
     }>('/admin/stats'),
+
+// RFID
+assignRFID: (userId: string, uid: string) =>
+  request<{ ok: boolean }>('/admin/rfid/assign', {
+    method: 'POST',
+    body: JSON.stringify({ user_id: userId, uid }),
+  }),
+
+identifyRFID: (uid: string) =>
+  request<{
+    user: { id: string; name: string; points: number } | null;
+  }>('/admin/rfid/identify', {
+    method: 'POST',
+    body: JSON.stringify({ uid }),
+  }),
+
 };

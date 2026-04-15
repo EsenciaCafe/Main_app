@@ -2,6 +2,7 @@ from fastapi import FastAPI, APIRouter, Depends, HTTPException, Header
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
+from fastapi import Body
 import os
 import logging
 from pathlib import Path
@@ -107,6 +108,7 @@ class UserAdminUpdate(BaseModel):
     role: Optional[Literal["customer", "admin"]] = None
     club_member: Optional[bool] = None
     membership_tier: Optional[str] = Field(default=None, max_length=80)
+    uid: Optional[str] = Field(default=None, max_length=120)
 
     @field_validator("name")
     @classmethod
@@ -121,6 +123,14 @@ class UserAdminUpdate(BaseModel):
         if value is None:
             return None
         value = value.strip()
+        return value or None
+
+    @field_validator("uid")
+    @classmethod
+    def normalize_uid(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        value = value.strip().upper()
         return value or None
 
 # ── Auth helpers ────────────────────────────────────────
@@ -139,6 +149,7 @@ def serialize_user(user: dict) -> dict:
         "role": user["role"],
         "points": user["points"],
         "created_at": user["created_at"],
+        "uid": user.get("uid"),
         "club_member": bool(user.get("club_member", False)),
         "membership_tier": user.get("membership_tier"),
         "club_waitlist": bool(user.get("club_waitlist", False)),
@@ -196,6 +207,7 @@ async def register(data: UserCreate):
         "role": "customer",
         "points": 0,
         "created_at": datetime.now(timezone.utc).isoformat(),
+        "uid": None,
         "club_member": False,
         "membership_tier": None,
         "club_waitlist": False,
@@ -383,6 +395,17 @@ async def get_customer(user_id: str, user=Depends(get_admin_user)):
         raise HTTPException(status_code=404, detail="Customer not found")
     return customer
 
+@api_router.get("/admin/customer-by-uid/{uid}")
+async def get_customer_by_uid(uid: str, user=Depends(get_admin_user)):
+    normalized_uid = uid.strip().upper()
+    customer = await db.users.find_one(
+        {"uid": normalized_uid},
+        {"_id": 0, "password_hash": 0},
+    )
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    return customer
+
 @api_router.put("/admin/user/{user_id}")
 async def update_user(user_id: str, data: UserAdminUpdate, user=Depends(get_admin_user)):
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
@@ -391,6 +414,9 @@ async def update_user(user_id: str, data: UserAdminUpdate, user=Depends(get_admi
 
     if "email" in update_data:
         update_data["email"] = update_data["email"].strip().lower()
+
+    if "uid" in update_data:
+        update_data["uid"] = update_data["uid"].strip().upper() if update_data["uid"] else None
 
     if "password" in update_data:
         update_data["password_hash"] = hash_password(update_data.pop("password"))
@@ -519,12 +545,71 @@ async def get_stats(user=Depends(get_admin_user)):
         "active_promos": active_promos
     }
 
+
+
+# GUARDAR UID EN USUARIO (emparejar)
+@app.post("/api/admin/rfid/assign")
+async def assign_rfid(user_id: str = Body(...), uid: str = Body(...), user=Depends(get_admin_user)):
+    normalized_uid = uid.strip().upper()
+
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"uid": normalized_uid}}
+    )
+
+    return {"ok": True}
+
+
+# IDENTIFICAR USUARIO POR UID
+@app.post("/api/admin/rfid/identify")
+async def identify_rfid(uid: str = Body(...)):
+    normalized_uid = uid.strip().upper()
+
+    found_user = await db.users.find_one(
+        {"uid": normalized_uid},
+        {"_id": 0, "password_hash": 0}
+    )
+
+    if not found_user:
+        return {"user": None}
+
+    return {
+        "user": {
+            "id": found_user["id"],
+            "name": found_user["name"],
+            "points": found_user.get("points", 0)
+        }
+    }
+
+
+from fastapi import Body
+
+@app.post("/api/rfid/identify")
+async def identify_rfid(uid: str = Body(...)):
+    normalized_uid = uid.strip().upper()
+
+    user = await db.users.find_one(
+        {"uid": normalized_uid},
+        {"_id": 0, "password_hash": 0}
+    )
+
+    if not user:
+        return {"user": None}
+
+    return {
+        "user": {
+            "id": user["id"],
+            "name": user["name"],
+            "points": user.get("points", 0)
+        }
+    }
 # ── Seed data ───────────────────────────────────────────
 
 @app.on_event("startup")
 async def seed_data():
     await db.users.create_index("id", unique=True)
     await db.users.create_index("email", unique=True)
+    await db.users.create_index("uid", unique=True, sparse=True)
     await db.promotions.create_index("id", unique=True)
     await db.redemptions.create_index("id", unique=True)
     await db.redemptions.create_index("user_id")

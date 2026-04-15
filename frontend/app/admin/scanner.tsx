@@ -23,17 +23,26 @@ export default function ScannerScreen() {
   const [adding, setAdding] = useState(false);
 
   const handleLookup = async () => {
-    if (!customerId.trim()) {
-      Alert.alert('Error', 'Ingresa el ID del cliente');
+    const value = customerId.trim();
+
+    if (!value) {
+      Alert.alert('Error', 'Ingresa el ID del cliente o el UID del llavero');
       return;
     }
 
     setLoading(true);
     try {
-      const foundCustomer = await api.getCustomer(customerId.trim());
+      let foundCustomer = null;
+
+      try {
+        foundCustomer = await api.getCustomer(value);
+      } catch {
+        foundCustomer = await api.getCustomerByUid(value);
+      }
+
       setCustomer(foundCustomer);
     } catch {
-      Alert.alert('No encontrado', 'No se encontro un cliente con ese ID');
+      Alert.alert('No encontrado', 'No se encontro un cliente con ese ID o UID');
     } finally {
       setLoading(false);
     }
@@ -77,14 +86,14 @@ export default function ScannerScreen() {
           </View>
           <Text style={styles.scanTitle}>Identificar Cliente</Text>
           <Text style={styles.scanSubtitle}>
-            Ingresa el ID del cliente que aparece en su codigo QR
+            Ingresa el ID del cliente o el UID del llavero para identificarlo
           </Text>
 
           <View style={styles.inputRow}>
             <TextInput
               testID="customer-id-input"
               style={styles.idInput}
-              placeholder="ID del cliente"
+              placeholder="ID del cliente o UID"
               placeholderTextColor={Colors.textSecondary}
               value={customerId}
               onChangeText={setCustomerId}
