@@ -720,3 +720,25 @@ app.add_middleware(
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+from fastapi import Body
+
+@app.post("/api/rfid/identify")
+async def identify_rfid(uid: str = Body(...)):
+    normalized_uid = uid.strip().upper()
+
+    user = await db.users.find_one(
+        {"uid": normalized_uid},
+        {"_id": 0, "password_hash": 0}
+    )
+
+    if not user:
+        return {"user": None}
+
+    return {
+        "user": {
+            "id": user["id"],
+            "name": user["name"],
+            "points": user.get("points", 0)
+        }
+    }
